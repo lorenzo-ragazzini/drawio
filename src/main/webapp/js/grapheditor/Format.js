@@ -2980,7 +2980,126 @@ mxUtils.extend(CodeEditorPanel, BaseFormatPanel);
  */
 CodeEditorPanel.prototype.init = function()
 {
-	// Empty panel for now
+	var self = this;
+
+	// Create editor container
+	var editorContainer = document.createElement('div');
+	editorContainer.style.width = '100%';
+	editorContainer.style.height = '400px';
+	editorContainer.style.border = '1px solid #ccc';
+	editorContainer.style.marginTop = '10px';
+	this.container.appendChild(editorContainer);
+
+	// Load Monaco Editor dynamically
+	var loadMonaco = function() {
+		if (typeof monaco !== 'undefined') {
+			initEditor();
+			return;
+		}
+
+		// Set up require configuration for Monaco
+		window.require = {
+			paths: {
+				'vs': 'lib/monaco-editor/vs'
+			}
+		};
+
+		// Load Monaco loader script
+		var loaderScript = document.createElement('script');
+		loaderScript.src = 'lib/monaco-editor/vs/loader.js';
+		loaderScript.onload = function() {
+			// Load Monaco editor main module
+			require(['vs/editor/editor.main'], function() {
+				initEditor();
+			});
+		};
+		loaderScript.onerror = function() {
+			console.error('Failed to load Monaco Editor');
+			editorContainer.innerHTML = '<div style="padding: 20px; color: #666;">Monaco Editor failed to load. Please refresh the page.</div>';
+		};
+		document.head.appendChild(loaderScript);
+	};
+
+	// Initialize Monaco Editor when available
+	var initEditor = function() {
+		if (typeof monaco !== 'undefined') {
+			self.editor = monaco.editor.create(editorContainer, {
+				value: '// Write your code here\n',
+				language: 'javascript',
+				theme: 'vs-light',
+				automaticLayout: true,
+				minimap: { enabled: false },
+				scrollBeyondLastLine: false,
+				fontSize: 14,
+				lineNumbers: 'on',
+				roundedSelection: false,
+				scrollbar: {
+					vertical: 'auto',
+					horizontal: 'auto'
+				}
+			});
+
+			// Add language selector
+			var langSelector = self.createLanguageSelector();
+			self.container.insertBefore(langSelector, editorContainer);
+		} else {
+			setTimeout(initEditor, 100);
+		}
+	};
+
+	loadMonaco();
+};
+
+/**
+ * Create language selector for Monaco Editor
+ */
+CodeEditorPanel.prototype.createLanguageSelector = function()
+{
+	var self = this;
+	var container = document.createElement('div');
+	container.style.padding = '10px';
+	container.style.borderBottom = '1px solid #ccc';
+
+	var label = document.createElement('span');
+	label.textContent = 'Language: ';
+	label.style.marginRight = '10px';
+	container.appendChild(label);
+
+	var select = document.createElement('select');
+	select.style.padding = '5px';
+
+	var languages = [
+		'javascript',
+		'typescript',
+		'python',
+		'java',
+		'csharp',
+		'cpp',
+		'html',
+		'css',
+		'json',
+		'xml',
+		'sql',
+		'markdown',
+		'plaintext'
+	];
+
+	languages.forEach(function(lang) {
+		var option = document.createElement('option');
+		option.value = lang;
+		option.textContent = lang.charAt(0).toUpperCase() + lang.slice(1);
+		select.appendChild(option);
+	});
+
+	select.addEventListener('change', function() {
+		if (self.editor) {
+			var model = self.editor.getModel();
+			monaco.editor.setModelLanguage(model, select.value);
+		}
+	});
+
+	container.appendChild(select);
+	return container;
 };
 
 /**
