@@ -144,6 +144,7 @@ collapse=Collapse
 collapseExpand=Collapse/Expand
 collapse-expand=Click to collapse/expand\nShift-click to move neighbors \nAlt-click to protect group size
 collapsible=Collapsible
+code=Code
 comic=Comic
 comment=Comment
 commentsNotes=Comments/Notes

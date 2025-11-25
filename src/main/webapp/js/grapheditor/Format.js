@@ -305,6 +305,7 @@ Format.prototype.immediateRefresh = function()
 	{
 		var label2 = label.cloneNode(false);
 		var label3 = label2.cloneNode(false);
+		var label4 = label2.cloneNode(false);
 		
 		// Style
 		if (ss.cells.length > 0)
@@ -347,6 +348,18 @@ Format.prototype.immediateRefresh = function()
 		this.panels.push(new ArrangePanel(this, ui, arrangePanel));
 		this.container.appendChild(arrangePanel);
 
+		// Code
+		var title = document.createElement('div');
+		mxUtils.write(title, mxResources.get('code'));
+		label4.appendChild(title);
+		label4.setAttribute('title', mxResources.get('code'));
+		div.appendChild(label4);
+
+		var codePanel = div.cloneNode(false);
+		codePanel.style.display = 'none';
+		this.panels.push(new CodeEditorPanel(this, ui, codePanel));
+		this.container.appendChild(codePanel);
+
 		if (ss.cells.length > 0)
 		{
 			addClickHandler(label2, textPanel, idx++);
@@ -355,8 +368,9 @@ Format.prototype.immediateRefresh = function()
 		{
 			label2.style.display = 'none';
 		}
-		
-		addClickHandler(label3, arrangePanel, idx++, true);
+
+		addClickHandler(label3, arrangePanel, idx++);
+		addClickHandler(label4, codePanel, idx++, true);
 	}
 	
 	div.className = 'geFormatTitleContainer';
@@ -2948,6 +2962,25 @@ ArrangePanel.prototype.addEdgeGeometry = function(container)
 	graph.getModel().addListener(mxEvent.CHANGE, listener);
 	this.listeners.push({destroy: function() { graph.getModel().removeListener(listener); }});
 	listener();
+};
+
+/**
+ * Code Editor Panel
+ */
+CodeEditorPanel = function(format, editorUi, container)
+{
+	BaseFormatPanel.call(this, format, editorUi, container);
+	this.init();
+};
+
+mxUtils.extend(CodeEditorPanel, BaseFormatPanel);
+
+/**
+ * Initialize Code Editor Panel
+ */
+CodeEditorPanel.prototype.init = function()
+{
+	// Empty panel for now
 };
 
 /**
