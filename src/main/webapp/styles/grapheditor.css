@@ -37,10 +37,11 @@
 	overflow: hidden;
 	font-size: 14px;
 	height: 100%;
+	width: 100%;
 	margin: 0;
 	display: grid;
 	grid-template-rows: min-content min-content 1fr min-content;
-	grid-template-columns: min-content min-content 1fr min-content;
+	grid-template-columns: min-content min-content 1fr min-content min-content;
 }
 
 html:has(.geFullscreen),
@@ -142,8 +143,14 @@ div[id*="dgeMermaidOutput-"] {
 
 .geEditor>.geSidebarContainer.geFormatContainer {
 	min-height: 0;
+	grid-column: 5;
+	grid-row: 3;
+}
+
+.geEditor>.geFormatResizer {
 	grid-column: 4;
 	grid-row: 3;
+	z-index: 2;
 }
 
 .geEditor>.geHsplit {
@@ -255,6 +262,18 @@ div[id*="dgeMermaidOutput-"] {
 }
 
 .geHsplit:hover {
+	opacity: 1;
+}
+
+.geFormatResizer {
+	background: linear-gradient(light-dark(var(--dark-accent-text-color), var(--accent-text-color)), light-dark(var(--dark-accent-text-color), var(--accent-text-color))) no-repeat left/2px 100%;
+	transition: opacity 0.1s linear 0.1s;
+	cursor: ew-resize;
+	width: 10px;
+	opacity: 0;
+}
+
+.geFormatResizer:hover {
 	opacity: 1;
 }
 

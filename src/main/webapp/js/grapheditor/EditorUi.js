@@ -4982,7 +4982,7 @@ EditorUi.prototype.refresh = function(sizeDidChange)
 
 	this.sidebarContainer.style.width = this.hsplitPosition + 'px';
 	this.formatContainer.style.width = (this.format != null &&
-		this.formatWidth > 0) ? '' : '0';
+		this.formatWidth > 0) ? this.formatWidth + 'px' : '0';
 	
 	if (sizeDidChange ||
 		sw != this.sidebarContainer.style.width ||
@@ -5009,6 +5009,7 @@ EditorUi.prototype.createDivs = function()
 	this.toolbarContainer = this.createDiv('geToolbarContainer');
 	this.sidebarContainer = this.createDiv('geSidebarContainer');
 	this.formatContainer = this.createDiv('geSidebarContainer geFormatContainer');
+	this.formatResizer = this.createDiv('geFormatResizer');
 	this.diagramContainer = this.createDiv('geDiagramContainer');
 	this.hsplit = this.createDiv('geHsplit');
 
@@ -5070,12 +5071,42 @@ EditorUi.prototype.createUi = function()
 	// Creates the format sidebar
 	this.format = (this.editor.chromeless || !this.formatEnabled) ?
 		null : this.createFormat(this.formatContainer);
-	
+
 	if (this.format != null)
 	{
+		// Restore persisted width if present
+		try
+		{
+			var saved = localStorage.getItem('geFormatContainerWidth');
+			if (saved != null)
+			{
+				this.formatWidth = parseInt(saved) || this.formatWidth;
+			}
+		}
+		catch (e)
+		{
+			// ignore localStorage errors
+		}
+
+		this.formatContainer.style.width = (this.formatWidth > 0) ? this.formatWidth + 'px' : '0';
 		this.container.appendChild(this.formatContainer);
+		this.container.appendChild(this.formatResizer);
+
+		// Adds split handler for resizing the format panel
+		this.addSplitHandler(this.formatResizer, true, 0, mxUtils.bind(this, function(value)
+		{
+			// value is the resizer offset from the left; compute format width
+			var total = this.container.clientWidth || document.documentElement.clientWidth || document.body.clientWidth;
+			var resizerW = (this.formatResizer.clientWidth || 8);
+			var newW = Math.max(160, Math.min(total - 120, Math.max(0, total - value - resizerW)));
+			this.formatWidth = newW;
+			this.formatContainer.style.width = newW + 'px';
+			try { localStorage.setItem('geFormatContainerWidth', String(newW)); } catch (e) {}
+			this.refresh(true);
+			this.fireEvent(new mxEventObject('formatWidthChanged'));
+		}));
 	}
-	
+
 	this.container.appendChild(this.diagramContainer);
 
 	if (this.container != null && this.tabContainer != null)
