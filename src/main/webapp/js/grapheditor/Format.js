@@ -3025,7 +3025,7 @@ CodeEditorPanel.prototype.init = function()
 		if (typeof monaco !== 'undefined') {
 			self.editor = monaco.editor.create(editorContainer, {
 				value: '// Write your code here\n',
-				language: 'javascript',
+				language: 'python',
 				theme: 'vs-light',
 				automaticLayout: true,
 				minimap: { enabled: false },
@@ -3039,9 +3039,127 @@ CodeEditorPanel.prototype.init = function()
 				}
 			});
 
-			// Add language selector
-			var langSelector = self.createLanguageSelector();
-			self.container.insertBefore(langSelector, editorContainer);
+			// Load code from current selection (if present)
+			try
+			{
+				var ui = self.format.editorUi;
+				var ss = ui.getSelectionState();
+				var codeText = '';
+
+				if (ss != null && ss.style != null && ss.style['code'] != null)
+				{
+					try
+					{
+						codeText = decodeURIComponent(ss.style['code']);
+					}
+					catch (e)
+					{
+						codeText = ss.style['code'];
+					}
+				}
+
+				if (codeText != '')
+				{
+					self.editor.getModel().setValue(codeText);
+				}
+			}
+			catch (e)
+			{
+				console.warn('CodeEditorPanel: failed to load code from selection', e);
+			}
+
+			// Save code back to selected cell(s) on change (debounced)
+			var saveTimeout = null;
+			var saveCode = function()
+			{
+				if (!self.editor)
+				{
+					return;
+				}
+
+				var code = self.editor.getModel().getValue();
+				var ui = self.format.editorUi;
+				var graph = ui.editor.graph;
+				var cells = ui.getSelectionState().cells;
+
+				if (cells != null && cells.length > 0)
+				{
+					graph.getModel().beginUpdate();
+					try
+					{
+						var enc = '';
+
+						try
+						{
+							enc = encodeURIComponent(code);
+						}
+						catch (e)
+						{
+							enc = code;
+						}
+
+						graph.setCellStyles('code', enc, cells);
+						ui.fireEvent(new mxEventObject('styleChanged', 'keys', ['code'], 'values', [enc], 'cells', cells));
+					}
+					finally
+					{
+						graph.getModel().endUpdate();
+					}
+				}
+			};
+
+			self.editor.onDidChangeModelContent(function() {
+				if (saveTimeout != null)
+				{
+					window.clearTimeout(saveTimeout);
+				}
+
+				saveTimeout = window.setTimeout(saveCode, 800);
+			});
+
+			// Also update editor content when selection changes
+			var selectionListener = function()
+			{
+				try
+				{
+					var ui = self.format.editorUi;
+					var ss = ui.getSelectionState();
+					var codeText = '';
+
+					if (ss != null && ss.style != null && ss.style['code'] != null)
+					{
+						try
+						{
+							codeText = decodeURIComponent(ss.style['code']);
+						}
+						catch (e)
+						{
+							codeText = ss.style['code'];
+						}
+					}
+
+					if (self.editor && codeText != self.editor.getModel().getValue())
+					{
+						self.editor.getModel().setValue(codeText || '');
+					}
+				}
+				catch (e)
+				{
+					console.warn('CodeEditorPanel: selectionListener failed', e);
+				}
+			};
+
+			// Register selection/model listeners
+			try
+			{
+				var ui = self.format.editorUi;
+				ui.editor.graph.getModel().addListener(mxEvent.CHANGE, selectionListener);
+				ui.addListener('styleChanged', selectionListener);
+			}
+			catch (e)
+			{
+				// ignore
+			}
 		} else {
 			setTimeout(initEditor, 100);
 		}
@@ -3050,57 +3168,7 @@ CodeEditorPanel.prototype.init = function()
 	loadMonaco();
 };
 
-/**
- * Create language selector for Monaco Editor
- */
-CodeEditorPanel.prototype.createLanguageSelector = function()
-{
-	var self = this;
-	var container = document.createElement('div');
-	container.style.padding = '10px';
-	container.style.borderBottom = '1px solid #ccc';
-
-	var label = document.createElement('span');
-	label.textContent = 'Language: ';
-	label.style.marginRight = '10px';
-	container.appendChild(label);
-
-	var select = document.createElement('select');
-	select.style.padding = '5px';
-
-	var languages = [
-		'javascript',
-		'typescript',
-		'python',
-		'java',
-		'csharp',
-		'cpp',
-		'html',
-		'css',
-		'json',
-		'xml',
-		'sql',
-		'markdown',
-		'plaintext'
-	];
-
-	languages.forEach(function(lang) {
-		var option = document.createElement('option');
-		option.value = lang;
-		option.textContent = lang.charAt(0).toUpperCase() + lang.slice(1);
-		select.appendChild(option);
-	});
-
-	select.addEventListener('change', function() {
-		if (self.editor) {
-			var model = self.editor.getModel();
-			monaco.editor.setModelLanguage(model, select.value);
-		}
-	});
-
-	container.appendChild(select);
-	return container;
-};
+/* Language selector removed — editor defaults to Python per TODO */
 
 /**
  * Adds the label menu items to the given menu and parent.
