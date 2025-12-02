@@ -11417,8 +11417,41 @@ if (typeof mxVertexHandler !== 'undefined')
 		 */
 		Graph.prototype.dblClick = function(evt, cell)
 		{
+			console.log('Graph.prototype.dblClick ENTRY, isEnabled:', this.isEnabled(), 'cell:', cell);
+			
 			if (this.isEnabled())
 			{
+				console.log('Graph.dblClick called, cell:', cell);
+				console.log('openAgentPageDialog exists:', typeof this.openAgentPageDialog);
+				
+				// Intercept double-click on rhombus or agent shapes to open internal page dialog
+				if (cell != null && this.model.isVertex(cell))
+				{
+					var state = this.view.getState(cell);
+					console.log('state:', state);
+					
+					if (state != null && state.style != null)
+					{
+						var shapeName = mxUtils.getValue(state.style, mxConstants.STYLE_SHAPE, null);
+						console.log('shapeName:', shapeName);
+						
+						if (shapeName == 'rhombus' || shapeName == 'agent')
+						{
+							if (typeof this.openAgentPageDialog === 'function')
+							{
+								console.log('Calling openAgentPageDialog');
+								mxEvent.consume(evt);
+								this.openAgentPageDialog(cell);
+								return;
+							}
+							else
+							{
+								console.log('openAgentPageDialog not available on graph');
+							}
+						}
+					}
+				}
+				
 				cell = this.insertTextForEvent(evt, cell);
 				mxGraph.prototype.dblClick.call(this, evt, cell);
 			}

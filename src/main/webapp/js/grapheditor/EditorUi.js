@@ -1135,6 +1135,12 @@ EditorUi.prototype.init = function()
 		graph.showLinkDialog = mxUtils.bind(ui, ui.showLinkDialog);
 		graph.editLink = ui.actions.get('editLink').funct;
 		
+		// Make openAgentPageDialog available on graph for dblClick handling
+		if (typeof ui.openAgentPageDialog === 'function')
+		{
+			graph.openAgentPageDialog = mxUtils.bind(ui, ui.openAgentPageDialog);
+		}
+		
 		this.updateActionStates();
 		this.initClipboard();
 		this.initCanvas();

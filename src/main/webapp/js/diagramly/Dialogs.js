@@ -13823,3 +13823,141 @@ var ConnectionPointsDialog = function(editorUi, cell)
 
 	this.container = div;
 };
+
+/**
+ * Opens an editor dialog for an "internal" page stored on a shape with shape=agent or shape=rhombus.
+ */
+EditorUi.prototype.openAgentPageDialog = function(cell)
+{
+	var ui = this;
+	var outerGraph = ui.editor.graph;
+	var model = outerGraph.getModel();
+
+	// Create dialog content
+	var content = document.createElement('div');
+	content.style.whiteSpace = 'normal';
+	content.style.padding = '8px';
+
+	var info = document.createElement('div');
+	info.style.marginBottom = '6px';
+	mxUtils.write(info, mxResources.get('editInternalPage') || 'Edit internal page');
+	content.appendChild(info);
+
+	var container = document.createElement('div');
+	container.style.width = '720px';
+	container.style.height = '420px';
+	container.style.border = '1px solid #d3d3d3';
+	container.style.background = '#ffffff';
+	content.appendChild(container);
+
+	// Create temporary graph for editing the embedded page (use Graph, not mxGraph)
+	var tempGraph = new Graph(container);
+
+	try
+	{
+		// Use same stylesheet to make editing familiar
+		tempGraph.stylesheet = outerGraph.getStylesheet();
+	}
+	catch (e)
+	{
+		// ignore
+	}
+
+	// Load existing embedded page from the cell value (XML user object)
+	try
+	{
+		var cellValue = outerGraph.getModel().getValue(cell);
+
+		if (mxUtils.isNode(cellValue))
+		{
+			// Try to find an mxGraphModel inside the value node
+			var modelNode = null;
+
+			if (cellValue.nodeName == 'mxGraphModel')
+			{
+				modelNode = cellValue;
+			}
+			else
+			{
+				// Look for mxGraphModel child anywhere inside
+				var found = cellValue.getElementsByTagName('mxGraphModel');
+
+				if (found != null && found.length > 0)
+				{
+					modelNode = found[0];
+				}
+				else
+				{
+					// Also handle cases where the user object itself is a wrapper named agentPage
+					if (cellValue.nodeName == 'agentPage')
+					{
+						// try firstChild
+						if (cellValue.firstChild != null && cellValue.firstChild.nodeName == 'mxGraphModel')
+						{
+							modelNode = cellValue.firstChild;
+						}
+					}
+				}
+			}
+
+			if (modelNode != null)
+			{
+				var codec = new mxCodec(modelNode.ownerDocument);
+
+				tempGraph.getModel().beginUpdate();
+				try
+				{
+					// Clear model and decode into it
+					tempGraph.getModel().clear();
+					codec.decode(modelNode, tempGraph.getModel());
+				}
+				finally
+				{
+					tempGraph.getModel().endUpdate();
+				}
+			}
+		}
+	}
+	catch (e)
+	{
+		console.error('Failed to load agent internal page from cell value', e);
+	}
+
+	// Save handler for dialog
+	var saveFn = function()
+	{
+		try
+		{
+			var doc = mxUtils.createXmlDocument();
+			var enc = new mxCodec(doc);
+			var modelNode = enc.encode(new mxGraphModel(tempGraph.getModel().getRoot()));
+
+			// Create wrapper node 'agentPage' and import the model node
+			var wrapper = doc.createElement('agentPage');
+			wrapper.appendChild(doc.importNode(modelNode, true));
+
+			outerGraph.getModel().beginUpdate();
+			try
+			{
+				// Set the cell value to the wrapper XML node (user object)
+				outerGraph.getModel().setValue(cell, wrapper);
+			}
+			finally
+			{
+				outerGraph.getModel().endUpdate();
+			}
+		}
+		catch (e)
+		{
+			ui.handleError(e);
+		}
+	};
+
+	var dlg = new CustomDialog(ui, content, mxUtils.bind(this, function()
+	{
+		saveFn();
+	}));
+
+	// Show dialog
+	this.showDialog(dlg.container, 760, 520, true, true);
+};
